@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  # 1. FastAPI Service
+  web:
+    build: .
+    container_name: synapse_web
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      - redis
+      - db
+
+  # 2. Celery Worker Service
+  worker:
+    build: .
+    container_name: synapse_worker
+    # watchfiles allows the worker to restart when you change code
+    command: watchfiles "celery -A app.core.celery_app.celery_app worker --loglevel=info" .
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    depends_on:
+      - redis
+      - db
+
+  # 3. Message Broker
+  redis:
+    image: redis:7-alpine
+    container_name: synapse_redis
+    ports:
+      - "6379:6379"
+
+  # 4. Database
+  db:
+    image: postgres:15-alpine
+    container_name: synapse_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    env_file:
+      - .env
+    ports:
+      - "5432:5432"
+
+volumes:
+  postgres_data:
