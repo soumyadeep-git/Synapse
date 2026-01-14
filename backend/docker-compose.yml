@@ -20,8 +20,8 @@ services:
   worker:
     build: .
     container_name: synapse_worker
-    # watchfiles allows the worker to restart when you change code
-    command: watchfiles "celery -A app.core.celery_app.celery_app worker --loglevel=info" .
+    # FIX: Use "python -m celery" instead of just "celery" to avoid path issues
+    command: watchfiles "python -m celery -A app.core.celery_app.celery_app worker --loglevel=info" .
     volumes:
       - .:/app
     env_file:
@@ -43,8 +43,11 @@ services:
     container_name: synapse_db
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    env_file:
-      - .env
+    # FIX: Explicitly set Postgres credentials here
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=ops_db
     ports:
       - "5432:5432"
 
